@@ -22,3 +22,15 @@ Régénérer : `pip install matplotlib ezdxf shapely && python3 generator/build.
 
 Les plans de structure sont un **prédimensionnement** (BAEL 91 / RPA 99 v2003, σsol = 2 bars supposé)
 à faire vérifier par un ingénieur agréé après étude de sol.
+
+## Fichiers Excel
+
+- `Devis_quantitatif_estimatif.xlsx`
+  - **Récapitulatif** : total par lot, imprévus 5 %, TVA 19 %, TTC, ratios DA/m².
+  - **DQE** : 64 articles en 11 lots, quantité × P.U. = montant.
+  - **Avant-métré** : détail Nb × L × l × H tiré des plans.
+  - Les prix unitaires (en bleu) sont indicatifs (DA HT, 2026) et modifiables : tout se recalcule.
+- `Planning_travaux.xlsx` — diagramme de Gantt de 31 tâches, enchaînées fin → début avec décalages.
+  - Les dates se calculent à partir de la date d'ODS (G3) et du week-end (G4 : 1 = vendredi-samedi).
+
+Régénérer : `python3 generator/excel.py`
