@@ -30,7 +30,12 @@ Les plans de structure sont un **prédimensionnement** (BAEL 91 / RPA 99 v2003, 
   - **DQE** : 64 articles en 11 lots, quantité × P.U. = montant.
   - **Avant-métré** : détail Nb × L × l × H tiré des plans.
   - Les prix unitaires (en bleu) sont indicatifs (DA HT, 2026) et modifiables : tout se recalcule.
-- `Planning_travaux.xlsx` — diagramme de Gantt de 31 tâches, enchaînées fin → début avec décalages.
-  - Les dates se calculent à partir de la date d'ODS (G3) et du week-end (G4 : 1 = vendredi-samedi).
+- `Planning_travaux.xlsx` — planning détaillé, 53 tâches en 7 phases :
+  - **Gantt détaillé** : grille jour par jour (mois, semaines, jours), week-ends grisés,
+    barres par phase, chemin critique en rouge, jalons ◆, avancement.
+  - **Planning** : saisies (durées, 2 prédécesseurs, décalages, avancement) et calcul automatique
+    des dates au plus tôt / au plus tard, des marges et du chemin critique.
+  - **Diagramme** : graphique de Gantt Excel natif.
+- `Planning_Gantt.pdf` (+ `png/Planning_Gantt.png`) — diagramme de Gantt A2 imprimable avec les liaisons.
 
 Régénérer : `python3 generator/excel.py`

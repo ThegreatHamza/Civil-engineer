@@ -3,12 +3,10 @@
 python3 generator/excel.py  ->  plans/Devis_quantitatif_estimatif.xlsx, plans/Planning_travaux.xlsx
 Quantities come from the drawings (plans/). Unit prices are indicative (DA, 2026) and editable (blue cells).
 """
-import datetime as dt
 import os
 
 from openpyxl import Workbook
 from openpyxl.comments import Comment
-from openpyxl.formatting.rule import FormulaRule
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
@@ -406,182 +404,9 @@ def build_devis():
     return path
 
 
-# ------------------------------------------------------------------------------------------------
-# Planning
-# ------------------------------------------------------------------------------------------------
-PHASES = {
-    "Préparation": "7F7F7F",
-    "Gros œuvre — infrastructure": "8C5A2B",
-    "Gros œuvre — superstructure": "1F3B57",
-    "Maçonnerie & étanchéité": "C0504D",
-    "Corps d'état secondaires": "2E75B6",
-    "Finitions & réception": "548235",
-}
-TASKS = [  # id, task, phase, duration (working days), predecessor, lag
-    (1, "Installation de chantier", "Préparation", 5, None, 0),
-    (2, "Implantation, piquetage et chaises", "Préparation", 2, 1, 0),
-    (3, "Décapage et terrassements généraux", "Gros œuvre — infrastructure", 3, 2, 0),
-    (4, "Fouilles en puits et en tranchées", "Gros œuvre — infrastructure", 5, 3, 0),
-    (5, "Béton de propreté", "Gros œuvre — infrastructure", 2, 4, 0),
-    (6, "Semelles + amorces de poteaux (ferraillage, coulage)", "Gros œuvre — infrastructure", 6, 5, 0),
-    (7, "Longrines (coffrage, ferraillage, coulage)", "Gros œuvre — infrastructure", 6, 6, 0),
-    (8, "Remblai, hérisson, polyane et dallage", "Gros œuvre — infrastructure", 6, 7, 0),
-    (9, "Poteaux RDC", "Gros œuvre — superstructure", 5, 8, 0),
-    (10, "Coffrage poutres + pose poutrelles et hourdis", "Gros œuvre — superstructure", 8, 9, 0),
-    (11, "Ferraillage et coulage plancher terrasse", "Gros œuvre — superstructure", 4, 10, 0),
-    (12, "Cure du béton et décoffrage (≥ 21 jours)", "Gros œuvre — superstructure", 18, 11, 0),
-    (13, "Acrotère", "Gros œuvre — superstructure", 3, 12, 0),
-    (14, "Maçonnerie des murs extérieurs (double cloison)", "Maçonnerie & étanchéité", 10, 11, 2),
-    (15, "Cloisons intérieures + linteaux", "Maçonnerie & étanchéité", 6, 14, 0),
-    (16, "Forme de pente + isolation thermique", "Maçonnerie & étanchéité", 3, 13, 0),
-    (17, "Étanchéité multicouche + protection gravillons", "Maçonnerie & étanchéité", 4, 16, 0),
-    (18, "Descentes d'eaux pluviales", "Maçonnerie & étanchéité", 2, 17, 0),
-    (19, "Électricité : saignées, gaines, boîtiers", "Corps d'état secondaires", 5, 15, 0),
-    (20, "Plomberie encastrée (EF/EC, évacuations)", "Corps d'état secondaires", 5, 15, 0),
-    (21, "Pose des cadres de menuiseries", "Corps d'état secondaires", 3, 15, 0),
-    (22, "Enduits extérieurs au ciment", "Corps d'état secondaires", 10, 18, 0),
-    (23, "Enduits plâtre intérieurs (murs + plafonds)", "Corps d'état secondaires", 12, 20, 0),
-    (24, "Placage pierre du soubassement", "Corps d'état secondaires", 4, 22, 0),
-    (25, "Chapes, carrelage et plinthes", "Finitions & réception", 10, 23, 0),
-    (26, "Faïence cuisine et WC", "Finitions & réception", 4, 25, 0),
-    (27, "Pose des menuiseries (portes, fenêtres alu)", "Finitions & réception", 5, 25, 0),
-    (28, "Appareillage sanitaire et électrique", "Finitions & réception", 4, 26, 0),
-    (29, "Peinture intérieure", "Finitions & réception", 10, 28, 0),
-    (30, "Peinture des façades", "Finitions & réception", 6, 24, 0),
-    (31, "Nettoyage, levée des réserves, réception provisoire", "Finitions & réception", 3, 29, 0),
-]
-
-
-def build_planning():
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Planning"
-    ws["A1"] = "PLANNING PRÉVISIONNEL DES TRAVAUX (DIAGRAMME DE GANTT)"
-    ws["A1"].font = TITLE
-    ws["A2"] = PROJECT
-    ws["A2"].font = SUB
-    inputs = [
-        ("Date de démarrage (ODS)", dt.date(2027, 1, 3), "dd/mm/yyyy",
-         "Hypothèse : ordre de service le dimanche 03/01/2027 — à modifier."),
-        ("Décalage week-end (jours)", 1, "0",
-         "1 = week-end vendredi + samedi (Algérie) ; 0 = samedi + dimanche ; 2 = jeudi + vendredi."),
-    ]
-    for i, (lab, val, fmt, note) in enumerate(inputs):
-        r = 3 + i
-        ws.cell(row=r, column=2, value=lab).font = BOLD
-        c = ws.cell(row=r, column=7, value=val)
-        c.font = BLUE_IN
-        c.fill = PatternFill("solid", fgColor="FFFF00")
-        c.number_format = fmt
-        c.border = BOX
-        ws.cell(row=r, column=8, value=note).font = SUB
-    N = len(TASKS)
-    first, last = 9, 9 + N - 1
-    ws.cell(row=5, column=2, value="Date d'achèvement prévue").font = BOLD
-    c = ws.cell(row=5, column=7, value=f"=MAX(H{first}:H{last})")
-    c.number_format = "dd/mm/yyyy"
-    c.font = BOLD
-    c.border = BOX
-    ws.cell(row=6, column=2, value="Délai global (jours calendaires / mois)").font = BOLD
-    c = ws.cell(row=6, column=7, value=f"=G5-G3+1")
-    c.number_format = "0"
-    c.font = BOLD
-    c.border = BOX
-    c = ws.cell(row=6, column=8, value="=ROUND(G6/30.4,1)")
-    c.number_format = '0.0" mois"'
-    c.font = BOLD
-
-    labels = ["ID", "Tâche", "Phase", "Durée (j. ouvr.)", "Prédécesseur (ID)", "Décalage (j. ouvr.)", "Début", "Fin"]
-    widths = [5, 46, 26, 9, 11, 10, 11.5, 11.5]
-    for i, (lab, w) in enumerate(zip(labels, widths), 1):
-        c = ws.cell(row=8, column=i, value=lab)
-        c.font = WHITE_B
-        c.fill = HEAD_FILL
-        c.border = BOX
-        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        ws.column_dimensions[get_column_letter(i)].width = w
-    ws.row_dimensions[8].height = 42
-    rng_id = f"$A${first}:$A${last}"
-    rng_end = f"$H${first}:$H${last}"
-    for k, (tid, name, phase, dur, pred, lag) in enumerate(TASKS):
-        r = first + k
-        vals = [tid, name, phase, dur, pred, lag]
-        for col, v in enumerate(vals, 1):
-            c = ws.cell(row=r, column=col, value=v)
-            c.border = BOX
-            c.font = BLUE_IN if col in (4, 5, 6) else BLACK
-            if col in (1, 4, 5, 6):
-                c.alignment = Alignment(horizontal="center")
-        # WORKDAY (Sat/Sun weekend) applied on dates shifted by $G$4 days -> any 2-day weekend
-        ws.cell(row=r, column=7, value=(
-            f'=IF(E{r}="",WORKDAY($G$3-1+$G$4,1+F{r})-$G$4,'
-            f"WORKDAY(INDEX({rng_end},MATCH(E{r},{rng_id},0))+$G$4,1+F{r})-$G$4)"))
-        ws.cell(row=r, column=8, value=f"=WORKDAY(G{r}+$G$4,D{r}-1)-$G$4")
-        for col in (7, 8):
-            c = ws.cell(row=r, column=col)
-            c.number_format = "dd/mm/yy"
-            c.border = BOX
-            c.font = BLACK
-            c.alignment = Alignment(horizontal="center")
-    # Gantt: weekly columns
-    W = 30
-    gc0 = 9
-    for w in range(W):
-        col = gc0 + w
-        L = get_column_letter(col)
-        ws.column_dimensions[L].width = 4.2
-        c7 = ws.cell(row=7, column=col, value=f"S{w + 1}")
-        c7.font = Font(name=F, size=8, bold=True, color="FFFFFF")
-        c7.fill = HEAD_FILL
-        c7.alignment = Alignment(horizontal="center")
-        c8 = ws.cell(row=8, column=col, value=f"=$G$3+{7 * w}")
-        c8.number_format = "dd/mm"
-        c8.font = Font(name=F, size=7, bold=True, color="FFFFFF")
-        c8.fill = HEAD_FILL
-        c8.alignment = Alignment(horizontal="center", vertical="center", text_rotation=90)
-        for r in range(first, last + 1):
-            ws.cell(row=r, column=col).border = Border(left=Side(style="hair", color="D9D9D9"),
-                                                       right=Side(style="hair", color="D9D9D9"),
-                                                       top=thin, bottom=thin)
-    g0, g1 = get_column_letter(gc0), get_column_letter(gc0 + W - 1)
-    area = f"{g0}{first}:{g1}{last}"
-    for phase, color in PHASES.items():
-        formula = (f'AND($C{first}="{phase}",{g0}$8<=$H{first},{g0}$8+6>=$G{first})')
-        ws.conditional_formatting.add(area, FormulaRule(formula=[formula], fill=PatternFill("solid", fgColor=color),
-                                                        stopIfTrue=True))
-    ws.merge_cells(start_row=6, start_column=gc0, end_row=6, end_column=gc0 + W - 1)
-    t = ws.cell(row=6, column=gc0, value="Semaines (date du 1er jour de chaque semaine)")
-    t.font = BOLD
-    t.alignment = Alignment(horizontal="center")
-    # legend
-    lr = last + 2
-    ws.cell(row=lr, column=2, value="Légende des phases").font = BOLD
-    for i, (phase, color) in enumerate(PHASES.items()):
-        ws.cell(row=lr + 1 + i, column=1).fill = PatternFill("solid", fgColor=color)
-        ws.cell(row=lr + 1 + i, column=2, value=phase).font = BLACK
-    nr = lr + 1 + len(PHASES) + 1
-    notes = [
-        "Mode d'emploi : modifier la date de démarrage (G3), le décalage week-end (G4), les durées, prédécesseurs ou "
-        "décalages (cellules bleues) ;",
-        "les dates de début / fin et le diagramme se recalculent automatiquement (enchaînement fin → début).",
-        "Durées estimées pour une équipe de gros œuvre de 6 à 8 ouvriers et des sous-traitants CES ; jours fériés "
-        "non déduits.",
-        "La tâche 12 (cure ≥ 21 jours calendaires) conditionne le décoffrage du plancher avant l'acrotère et "
-        "l'étanchéité.",
-    ]
-    for i, n in enumerate(notes):
-        ws.cell(row=nr + i, column=2, value=n).font = SUB
-    ws.freeze_panes = ws.cell(row=first, column=gc0)
-    ws.sheet_view.zoomScale = 90
-    ws.page_setup.orientation = "landscape"
-    ws.sheet_properties.pageSetUpPr.fitToPage = True
-    ws.page_setup.fitToWidth = 1
-    ws.page_setup.fitToHeight = 1
-    path = os.path.join(OUT, "Planning_travaux.xlsx")
-    wb.save(path)
-    return path
-
-
 if __name__ == "__main__":
+    import planning
+
     print(build_devis())
-    print(build_planning())
+    print(planning.build_planning())
+    print(planning.build_gantt_pdf())
