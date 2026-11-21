@@ -23,6 +23,18 @@ Régénérer : `pip install matplotlib ezdxf shapely && python3 generator/build.
 Les plans de structure sont un **prédimensionnement** (BAEL 91 / RPA 99 v2003, σsol = 2 bars supposé)
 à faire vérifier par un ingénieur agréé après étude de sol.
 
+## Note de calcul
+
+- `Note_de_calcul_structure.pdf` — note de calcul BA (10 pages, A4) :
+  - charges, prédimensionnement ;
+  - poutrelles (Caquot), poutres PP (forfaitaire) et PS ;
+  - descente de charges des 12 poteaux, poteaux (BAEL + RPA) ;
+  - étude sismique (méthode statique équivalente) ;
+  - semelles S1 / S2 / S3, longrines, acrotère ;
+  - tableau récapitulatif des vérifications.
+- Calculs dans `generator/calc.py` (les plans 07 à 10 et le devis en reprennent les résultats).
+- Régénérer : `python3 generator/note_calcul.py`
+
 ## Fichiers Excel
 
 - `Devis_quantitatif_estimatif.xlsx`

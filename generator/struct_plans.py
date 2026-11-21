@@ -13,7 +13,7 @@ import model as M
 from arch import plan_axes
 from drawing import ACCENT, CONC, GREY, INK, REBAR, View
 
-SEM = {(x, y): ("S1", 1.20, 0.40) if (x, y) in [(5, 5), (10, 5)] else ("S2", 1.00, 0.35) for x, y in M.COLUMNS}
+SEM = {(x, y): (M.footing_type(x, y), *M.FOOTINGS[M.footing_type(x, y)]) for x, y in M.COLUMNS}
 FOUND_FC = "#ececec"
 
 
@@ -165,7 +165,7 @@ def coupe_type_foundation(S, v, a=1.20, hs=0.40, ztop=M.Z_SEM_TOP_S1):
     v.rect(0.15, M.Z_DALLAGE_TOP, 1.0, 0.0, fc="white", ec=INK, lw="fine", layer="S-SECT", z=3.2)
     # rebars
     c = 0.05
-    xs = [-a / 2 + c + i * (a - 2 * c) / round((a - 2 * c) / 0.15) for i in range(round((a - 2 * c) / 0.15) + 1)]
+    xs = [-a / 2 + c + i * (a - 2 * c) / math.ceil((a - 2 * c) / 0.15 - 1e-9) for i in range(math.ceil((a - 2 * c) / 0.15 - 1e-9) + 1)]
     for xx in xs:
         v.dot(xx, M.Z_SEM_BOT + c + 0.018, 0.007)
     v.line([(-a / 2 + c, M.Z_SEM_BOT + c + 0.25), (-a / 2 + c, M.Z_SEM_BOT + c), (a / 2 - c, M.Z_SEM_BOT + c),
@@ -188,7 +188,7 @@ def coupe_type_foundation(S, v, a=1.20, hs=0.40, ztop=M.Z_SEM_TOP_S1):
     v.dim([-a / 2, a / 2], M.Z_PROP - 0.2, "h", side=-1, h=2.0)
     v.dim([M.Z_SEM_BOT, ztop], a / 2 + 0.25, "v", side=-1, h=2.0)
     v.leader([(0.3, M.Z_SEM_BOT + 0.07), (0.85, M.Z_SEM_BOT + 0.25), (1.05, M.Z_SEM_BOT + 0.25)],
-             "Nappe inf. T12 e=15\n(2 directions)", h=1.9)
+             "Nappe inf. 9T12 e=14\n(2 directions)", h=1.9)
     v.leader([(0.115, -0.75), (0.5, -0.95), (1.05, -0.95)], "Amorces 8T12", h=1.9)
     v.leader([(0.6, M.Z_LONG_TOP - 0.04), (0.75, 0.25), (1.05, 0.25)], "Longrine 30×40", h=1.9)
 
@@ -229,10 +229,11 @@ def sheet_foundations(S):
     vd = View(S, ox=508, oy=343, scale=20)
     coupe_type_foundation(S, vd)
     S.view_title(473, 393, "DÉTAIL D1 — SEMELLE S1", "1:20", h=3.3)
-    rows = [["S1", "B2, B3", "2", "1.20×1.20×0.40", "T12 e=15 (2 dir.)"],
-            ["S2", "autres", "10", "1.00×1.00×0.35", "T12 e=15 (2 dir.)"],
-            ["L", "tous axes", "—", "0.30×0.40", "3T12 + 3T12"]]
-    y = S.table(437, 232, [("Rep.", 10), ("Poteaux", 18), ("Nb", 8), ("A×B×h (m)", 32), ("Armatures", 36)], rows,
+    rows = [["S1", "centraux", "2", "1.20×1.20×0.40", "9T12 e=14 (2 dir.)"],
+            ["S2", "de rive", "6", "1.10×1.10×0.35", "8T12 e=14 (2 dir.)"],
+            ["S3", "d'angle", "4", "1.00×1.00×0.35", "7T12 e=15 (2 dir.)"],
+            ["L", "tous axes", f"{M.longrine_length():.1f} ml", "0.30×0.40", "3T14 + 3T14"]]
+    y = S.table(437, 232, [("Rep.", 10), ("Poteaux", 16), ("Nb", 12), ("A×B×h (m)", 32), ("Armatures", 36)], rows,
                 title="TABLEAU DES FONDATIONS", h=2.0, row_h=5.2)
     y = struct_notes(S, 473, y - 10, extra=(
         "Fond de fouille : -1.60 m / sol fini (≈ 1.15 m",
@@ -398,7 +399,7 @@ def footing_plan(v, a, sp=0.15, c=0.05):
     v.rect(-a / 2 - 0.10, -a / 2 - 0.10, a / 2 + 0.10, a / 2 + 0.10, fc="none", ec=GREY, lw="fine", ls="hidden",
            layer="S-SECT")
     v.rect(-a / 2, -a / 2, a / 2, a / 2, fc=CONC, ec=INK, lw="thick", layer="S-SECT", z=3)
-    n = round((a - 2 * c) / sp)
+    n = math.ceil((a - 2 * c) / sp - 1e-9)
     pos = [-a / 2 + c + i * (a - 2 * c) / n for i in range(n + 1)]
     for p in pos:
         v.line([(-a / 2 + c, p), (a / 2 - c, p)], lw="thin", color=REBAR, layer="S-REBAR", z=6)
@@ -406,7 +407,8 @@ def footing_plan(v, a, sp=0.15, c=0.05):
     v.rect(-0.15, -0.15, 0.15, 0.15, fc="#3a3a3a", ec=INK, lw="thin", layer="S-SECT", z=7)
     v.dim([-a / 2, a / 2], -a / 2 - 0.12, "h", side=-1, h=2.0)
     v.dim([-a / 2, a / 2], -a / 2 - 0.12, "v", side=1, h=2.0)
-    v.text(0, a / 2 + 0.06, f"{n + 1} T12 e=15 (×2 directions)", h=2.0, ha="center", layer="S-TEXT")
+    v.text(0, a / 2 + 0.06, f"{n + 1} T12 e={(a - 2 * c) / n * 100:.0f} (×2 directions)", h=2.0, ha="center",
+           layer="S-TEXT")
     return n + 1
 
 
@@ -416,7 +418,7 @@ def footing_section(v, a, hs, sp=0.15, c=0.05):
     v.rect(-a / 2, 0, a / 2, hs, fc=CONC, ec=INK, lw="thick", layer="S-SECT", z=3)
     v.rect(-0.15, hs, 0.15, hs + 0.45, fc=CONC, ec=INK, lw="thick", layer="S-SECT", z=3)
     v.break_line((-0.22, hs + 0.45), (0.22, hs + 0.45))
-    n = round((a - 2 * c) / sp)
+    n = math.ceil((a - 2 * c) / sp - 1e-9)
     for i in range(n + 1):
         v.dot(-a / 2 + c + i * (a - 2 * c) / n, c + 0.018, 0.006)
     v.line([(-a / 2 + c, c + hs * 0.6), (-a / 2 + c, c), (a / 2 - c, c), (a / 2 - c, c + hs * 0.6)], lw="thick",
@@ -452,8 +454,8 @@ def sheet_rebar_foundations(S):
     c = 0.05
     v.line([(-a / 2 + c, M.Z_SEM_BOT + 0.25), (-a / 2 + c, M.Z_SEM_BOT + c), (a / 2 - c, M.Z_SEM_BOT + c),
             (a / 2 - c, M.Z_SEM_BOT + 0.25)], lw="thick", color=REBAR, layer="S-REBAR", z=8)
-    for i in range(8):
-        v.dot(-a / 2 + c + i * (a - 2 * c) / 7, M.Z_SEM_BOT + c + 0.018, 0.006)
+    for i in range(9):
+        v.dot(-a / 2 + c + i * (a - 2 * c) / 8, M.Z_SEM_BOT + c + 0.018, 0.006)
     # longitudinal bars with feet and top anchorage
     for xx in (-0.115, 0.0, 0.115):
         sg = -1 if xx < 0 else 1
@@ -510,24 +512,30 @@ def sheet_rebar_foundations(S):
 
     # ---- tie beam section 1:5 ----
     vl = View(S, ox=200, oy=150, scale=5)
-    rc_section(vl, 0.30, 0.40, [(3, 0.012)], [(3, 0.012)], cover=0.03, notes_top="3 T12", notes_bot="3 T12",
+    rc_section(vl, 0.30, 0.40, [(3, 0.014)], [(3, 0.014)], cover=0.03, notes_top="3 T14", notes_bot="3 T14",
                stirrup_txt="Cad. T8 e=20 + épingle")
     S.view_title(165, 255, "LONGRINE L 30×40", "1:5", h=3.4)
 
     # ---- footings 1:20 ----
-    for (xo, name, a, hs) in [(325, "S1", 1.20, 0.40), (420, "S2", 1.00, 0.35)]:
+    for (xo, name) in [(325, "S1"), (420, "S2")]:
+        a, hs = M.FOOTINGS[name]
         vp = View(S, ox=xo, oy=335, scale=20)
         footing_plan(vp, a)
         S.view_title(xo - 35, 393, f"SEMELLE {name} — VUE EN PLAN", "1:20", h=3.2)
         vc = View(S, ox=xo, oy=170, scale=20)
         footing_section(vc, a, hs)
         S.view_title(xo - 35, 268, f"SEMELLE {name} — COUPE", "1:20", h=3.2)
+        if name == "S2":
+            a3, h3 = M.FOOTINGS["S3"]
+            S.text(xo - 35, 110, f"Semelle S3 (angles) : {a3:.2f} × {a3:.2f} × {h3:.2f} m, 7 T12 e=15 (×2 dir.),",
+                   h=2.1, color=GREY)
+            S.text(xo - 35, 106, "disposition identique à S2.", h=2.1, color=GREY)
 
-    rows = [["1", "Semelle S1", "T12", "8+8 / u", "1.40", "2"],
-            ["2", "Semelle S2", "T12", "7+7 / u", "1.20", "10"],
+    rows = [["1", "Semelle S1", "T12", "9+9 / u", "1.40", "2"],
+            ["2", "Semelles S2 / S3", "T12", "8+8 / 7+7", "1.30 / 1.20", "6 / 4"],
             ["3", "Poteau (long.)", "T12", "8 / u", "5.60", "12"],
             ["4", "Poteau (cadre+los.)", "T8", "≈ 36 / u", "1.10+0.85", "12"],
-            ["5", "Longrine (long.)", "T12", "6 / travée", "5.70", "17"],
+            ["5", "Longrine (long.)", "T14", "6 / travée", "5.70", "17"],
             ["6", "Longrine (cadres)", "T8", "≈ 24 / trav.", "1.30", "17"]]
     y = S.table(473, 393, [("N°", 7), ("Élément", 36, "left"), ("Ø", 10), ("Nb barres", 22), ("L (m)", 18),
                                 ("Nb él.", 13)], rows, title="NOMENCLATURE DES ACIERS (indicative)", h=1.9,
@@ -542,7 +550,7 @@ def sheet_rebar_foundations(S):
 # =====================================================================================
 # 10 - Beams & slab reinforcement
 # =====================================================================================
-def beam_elev(v, H, bars, cuts, label):
+def beam_elev(v, H, bars, cuts, label, en=0.10):
     """Elevation of an end span (axis 1 -> axis 2) + start of next span with break line. h = x."""
     Lr = 6.00
     v.rect(-0.15, 0, Lr, H, fc=CONC, ec=INK, lw="thick", layer="S-SECT", z=3)
@@ -567,7 +575,7 @@ def beam_elev(v, H, bars, cuts, label):
         x = a + 0.05
         while x < min(a + 2 * H, b):
             xs.append(x)
-            x += 0.10
+            x += en
         x = xs[-1] + 0.15
         while x < b - 2 * H and x < b:
             xs.append(x)
@@ -576,7 +584,7 @@ def beam_elev(v, H, bars, cuts, label):
             x = b - 2 * H
             while x < b - 0.02:
                 xs.append(x)
-                x += 0.10
+                x += en
     for x in xs:
         v.line([(x, c - 0.01), (x, H - c + 0.01)], lw="fine", color=REBAR, layer="S-REBAR", z=7)
     # labels (circled numbers)
@@ -596,13 +604,13 @@ def beam_elev(v, H, bars, cuts, label):
     v.text(5.1, H + 0.99, "(chapeau 3.00 m, symétrique / axe 2)", h=1.8, color=GREY, layer="S-TEXT")
     v.dim([-0.15, 1.25], H + 0.95, "h", h=1.9, color=GREY)
     v.dim([0, H], -0.5, "v", side=1, h=1.9)
-    for x, lab_ in zip([0, 5], ["1", "2"]):
+    for x, lab_ in zip([0, 5], ["A", "B"] if label == "PS" else ["1", "2"]):
         v.axis((x, -0.98), (x, -0.62), lab_, ends=(True, False), r_mm=3.5)
     for x, n in cuts:
         for z0, z1 in ((-0.12, -0.02), (H + 0.02, H + 0.12)):
             v.line([(x, z0), (x, z1)], lw="xthick", color=ACCENT)
         v.text(x + 0.05, H + 0.10, n, h=2.4, weight="bold", color=ACCENT)
-    v.text(0.35, -0.30, "Zone nodale : cad.+étr. T8 e=10 sur 2h\nZone courante : e=15", h=1.8, ha="left",
+    v.text(0.35, -0.30, f"Zone nodale : cad.+étr. T8 e={en * 100:.0f} sur 2h\nZone courante : e=15", h=1.8, ha="left",
            va="top", color=GREY, layer="S-TEXT")
 
 
@@ -637,7 +645,8 @@ def slab_detail(v):
     v.dim([0, 0.20, 0.24], W + 0.10, "v", side=-1, h=2.0)
     v.leader([(0.9, 0.22), (1.0, 0.36), (1.06, 0.36)], "Dalle de compression 4 cm + TS Ø6 maille 20×20", h=1.9)
     v.leader([(0.33, 0.10), (0.33, 0.33), (0.39, 0.33)], "Entrevous (hourdis) 20×20×53", h=1.9)
-    v.leader([(0.65, 0.04), (0.45, -0.20), (0.39, -0.20)], "Poutrelle : 3T10 (2 inf. + 1 sup.) + étriers Ø6 e=20",
+    v.leader([(0.65, 0.04), (0.45, -0.20), (0.39, -0.20)],
+             "Poutrelle : 2T12 inf. + 1T10 sup. + étriers Ø6 e=15 ; chapeau 2T12 sur appui B",
              h=1.9, ha="right")
     v.text(0, -0.02, "Enduit plâtre 2 cm", h=1.8, va="top", color=GREY, layer="S-TEXT")
 
@@ -682,7 +691,7 @@ def sheet_rebar_beams(S):
         S.text(xo, 377, "Éch. 1:10", h=2.0, color=GREY, ha="center")
     v2 = View(S, ox=55, oy=210, scale=25)
     beam_elev(v2, M.PS_H, dict(bot="3T14 filants", bot2=None, top="3T12 filants", chap="2T12 chapeaux"),
-              [(1.0, "3"), (2.5, "4")], "PS")
+              [(1.0, "3"), (2.5, "4")], "PS", en=0.08)
     S.view_title(32, 275, "POUTRE SECONDAIRE PS (30×35) — TRAVÉE DE RIVE", "1:25", h=3.4)
     for i, (xo, nm, top, bot) in enumerate([(345, "3-3 (appui)", [(3, 0.012), (2, 0.012)], [(3, 0.014)]),
                                              (415, "4-4 (travée)", [(3, 0.012)], [(3, 0.014)])]):
@@ -698,20 +707,21 @@ def sheet_rebar_beams(S):
     S.view_title(262, 160, "DÉTAIL ACROTÈRE", "1:10", h=3.4)
 
     rows = [["PP", "30×45", "3T16 + 3T16", "3T14 + 3T14 ch.", "T8 e=10/15"],
-            ["PS", "30×35", "3T14", "3T12 + 2T12 ch.", "T8 e=10/15"],
-            ["Poutrelle", "12×20", "2T10", "1T10", "Ø6 e=20"],
+            ["PS", "30×35", "3T14", "3T12 + 2T12 ch.", "T8 e=8/15"],
+            ["Poutrelle", "12×20", "2T12", "1T10 + ch. 2T12", "Ø6 e=15"],
             ["Dalle comp.", "ép. 4", "TS Ø6 20×20", "—", "—"],
             ["Acrotère", "10×60", "4+4 T8", "—", "T8 e=20"]]
     y = S.table(473, 393, [("Élément", 18, "left"), ("b×h", 13), ("Inférieur", 25), ("Supérieur", 28),
                            ("Transv.", 20)], rows, title="RÉCAPITULATIF DES ARMATURES", h=1.85, row_h=5.2)
-    y = S.notes(473, y - 10, "PRINCIPE DE CALCUL (PP)", [
-        "q_u = 1.35 G + 1.5 Q ≈ 10.3 kN/m² ;",
-        "bande de 5.00 m + p.p. → p_u ≈ 56 kN/m",
-        "M_travée ≈ 0.8·p_u·L²/8 ≈ 140 kN·m",
-        "→ A_s requis ≈ 11.0 cm² ;",
-        "  prévu 6T16 = 12.06 cm².",
-        "Chapeaux : L/4 + ancrage de part et",
-        "  d'autre des appuis intermédiaires.",
+    import calc as C
+    B = C.PP["axes"]["B"]
+    y = S.notes(473, y - 10, "PRINCIPE DE CALCUL (PP axe B)", [
+        f"p_u = {B['pu']:.1f} kN/m (réactions des poutrelles + p.p.)",
+        f"Méthode forfaitaire : M0 = {B['M0']:.1f} kN·m",
+        f"M travée de rive = {B['Mt_rive']:.1f} kN·m → A = {C.PP['ft']['As']:.2f} cm²",
+        f"M appui = {B['Ma_int']:.1f} kN·m → A = {C.PP['fa']['As']:.2f} cm²",
+        f"Prévu : 6T16 = {C.PP['A_bot']:.2f} cm² / 6T14 = {C.PP['A_top_sup']:.2f} cm²",
+        "Détail complet : Note de calcul, § 6.",
     ], h=2.05)
     y = struct_notes(S, 473, y - 6)
     warning(S, 473, y - 4)

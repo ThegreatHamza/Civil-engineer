@@ -52,4 +52,6 @@ def sheet_cover(S):
         "   après étude géotechnique.",
         "6. Fichiers DXF fournis (unités : mètres)",
         "   pour reprise sous AutoCAD.",
+        "7. Note de calcul de la structure jointe :",
+        "   Note_de_calcul_structure.pdf.",
     ], h=2.1)

@@ -136,3 +136,37 @@ def net_area(poly):
 
 def openings_on(o, at):
     return sorted([op for op in OPENINGS if op["o"] == o and op["at"] == at], key=lambda op: op["c"])
+
+
+# ---- foundations (sized in the structural calculation note, generator/calc.py) ----
+FOOTINGS = {"S1": (1.20, 0.40), "S2": (1.10, 0.35), "S3": (1.00, 0.35)}  # side a (m), height h (m)
+
+
+def footing_type(x, y):
+    if x in (0, 15) and y in (0, 8):
+        return "S3"            # corner columns
+    if 0 < x < 15 and 0 < y < 8:
+        return "S1"            # interior columns B2, B3
+    return "S2"                # edge columns
+
+
+def footing_top(x, y):
+    return Z_SEM_BOT + FOOTINGS[footing_type(x, y)][1]
+
+
+def longrine_spans():
+    """Clear lengths of tie beams between footing faces: list of (label, length)."""
+    out = []
+    for y, yl in zip(YA, YL):
+        for i in range(len(XA) - 1):
+            a = FOOTINGS[footing_type(XA[i], y)][0] / 2 + FOOTINGS[footing_type(XA[i + 1], y)][0] / 2
+            out.append((f"{yl}{XL[i]}-{yl}{XL[i + 1]}", XA[i + 1] - XA[i] - a))
+    for x, xl in zip(XA, XL):
+        for j in range(len(YA) - 1):
+            a = FOOTINGS[footing_type(x, YA[j])][0] / 2 + FOOTINGS[footing_type(x, YA[j + 1])][0] / 2
+            out.append((f"{YL[j]}{xl}-{YL[j + 1]}{xl}", YA[j + 1] - YA[j] - a))
+    return out
+
+
+def longrine_length():
+    return round(sum(L for _, L in longrine_spans()), 2)

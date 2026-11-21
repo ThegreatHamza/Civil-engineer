@@ -10,6 +10,8 @@ from openpyxl.comments import Comment
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
+import model as M
+
 OUT = os.path.join(os.path.dirname(__file__), "..", "plans")
 F = "Arial"
 NAVY = "1F3B57"
@@ -36,6 +38,8 @@ PROJECT = "Construction d'une habitation individuelle en R.D.C — 15.00 × 8.00
 # Bill of quantities data: (code, designation, unit, price DA, [sub-lines]) ; lot rows: ("LOT", title)
 # sub-line = (label, Nb, L, l, H) ; a value "@x.y" links to the quantity of item x.y ; "@a+@b" sums.
 # ------------------------------------------------------------------------------------------------
+NB = {t: sum(1 for x, y in M.COLUMNS if M.footing_type(x, y) == t) for t in M.FOOTINGS}
+LLONG = M.longrine_length()
 EXT_OPEN = [("À déduire : F1 1.20×1.20", -4, None, 1.20, 1.20), ("À déduire : F2 1.40×1.20", -2, None, 1.40, 1.20),
             ("À déduire : F3 1.00×1.20", -2, None, 1.00, 1.20), ("À déduire : F4 0.60×0.60", -1, None, 0.60, 0.60),
             ("À déduire : P1 1.20×2.20", -1, None, 1.20, 2.20)]
@@ -50,9 +54,10 @@ ITEMS = [
     ("1.1", "Décapage de la terre végétale sur 20 cm", "m²", 150,
      [("Emprise hors-tout + 1.00 m en périphérie", 1, 17.30, 10.30, None)]),
     ("1.2", "Fouilles en puits pour semelles isolées (fond à -1.60, soit 1.15 m sous TN)", "m³", 1300,
-     [("Semelles S1 (1.20 + 2×0.10)²", 2, 1.40, 1.40, 1.15), ("Semelles S2 (1.00 + 2×0.10)²", 10, 1.20, 1.20, 1.15)]),
+     [(f"Semelles {t} ({a:.2f} + 2×0.10)²", NB[t], a + 0.2, a + 0.2, round(M.Z_TN - M.Z_PROP, 2))
+      for t, (a, h) in M.FOOTINGS.items()]),
     ("1.3", "Fouilles en tranchée pour longrines", "m³", 1300,
-     [("Longrines, longueur nette entre semelles", 1, 59.20, 0.50, 0.20)]),
+     [("Longrines, longueur nette entre semelles", 1, LLONG, 0.50, 0.20)]),
     ("1.4", "Remblai compacté par couches de 20 cm", "m³", 800,
      [("Volume des fouilles", 1, "@1.2+@1.3", None, None), ("À déduire : béton de propreté", -1, "@2.1", None, None),
       ("À déduire : semelles", -1, "@2.2", None, None), ("À déduire : amorces de poteaux", -1, "@2.3", None, None),
@@ -62,14 +67,15 @@ ITEMS = [
       ("À déduire : terres réutilisées en remblai", -1, "@1.4", None, None)]),
     ("LOT", "LOT 02 — INFRASTRUCTURE (BÉTON ARMÉ)"),
     ("2.1", "Béton de propreté dosé à 150 kg/m³, ép. 10 cm", "m³", 12000,
-     [("Sous semelles S1", 2, 1.40, 1.40, 0.10), ("Sous semelles S2", 10, 1.20, 1.20, 0.10),
-      ("Sous longrines", 1, 59.20, 0.40, 0.10)]),
+     [*[(f"Sous semelles {t}", NB[t], a + 0.2, a + 0.2, 0.10) for t, (a, h) in M.FOOTINGS.items()],
+      ("Sous longrines", 1, LLONG, 0.40, 0.10)]),
     ("2.2", "Béton armé C25 pour semelles isolées (coffrage compris, hors acier)", "m³", 28000,
-     [("S1 1.20 × 1.20 × 0.40", 2, 1.20, 1.20, 0.40), ("S2 1.00 × 1.00 × 0.35", 10, 1.00, 1.00, 0.35)]),
+     [(f"{t} {a:.2f} × {a:.2f} × {h:.2f}", NB[t], a, a, h) for t, (a, h) in M.FOOTINGS.items()]),
     ("2.3", "Béton armé C25 pour amorces de poteaux 30 × 30", "m³", 35000,
-     [("Sur S1 (-1.10 → -0.45)", 2, 0.30, 0.30, 0.65), ("Sur S2 (-1.15 → -0.45)", 10, 0.30, 0.30, 0.70)]),
+     [(f"Sur {t} ({M.Z_SEM_BOT + h:+.2f} → -0.45)", NB[t], 0.30, 0.30, round(-0.45 - (M.Z_SEM_BOT + h), 2))
+      for t, (a, h) in M.FOOTINGS.items()]),
     ("2.4", "Béton armé C25 pour longrines 30 × 40", "m³", 32000,
-     [("Longrines, longueur nette", 1, 59.20, 0.30, 0.40)]),
+     [("Longrines, longueur nette", 1, LLONG, 0.30, 0.40)]),
     ("2.5", "Acier HA FeE400 façonné et posé — infrastructure", "kg", 230,
      [("Semelles : ratio 70 kg/m³", 70, "@2.2", None, None), ("Amorces : ratio 130 kg/m³", 130, "@2.3", None, None),
       ("Longrines : ratio 110 kg/m³", 110, "@2.4", None, None)]),

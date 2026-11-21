@@ -631,7 +631,7 @@ def section_AA(v):
         v.text(1.1, 1.5, "Mur WC\n(au-delà)", h=1.8, ha="center", va="center", color=GREY, layer="A-SECT-BEY")
         v.text(3.5, 1.5, "HALL", h=2.8, ha="center", weight="bold", layer="A-SECT")
         v.text(6.5, 1.5, "CHAMBRE 03", h=2.8, ha="center", weight="bold", layer="A-SECT")
-    fb = [(0, 1.0, M.Z_SEM_TOP_S2), (5, 1.2, M.Z_SEM_TOP_S1), (8, 1.0, M.Z_SEM_TOP_S2)]
+    fb = [(y, M.FOOTINGS[M.footing_type(10, y)][0], M.footing_top(10, y)) for y in M.YA]
     section_common(v, 8.0, walls, beams, [beyond], fb, openings_cut=ops)
     section_levels(v, -1.9)
     v.dim([M.Z_SEM_BOT, M.Z_TN, 0, M.Z_CEIL, M.Z_SLAB, M.Z_ACRO], 9.6, "v", side=-1, h=1.9)
@@ -659,7 +659,7 @@ def section_BB(v):
         v.text(8.0, 1.45, "HALL", h=2.8, ha="center", weight="bold", layer="A-SECT")
         for xm, lab in [(4.15, "P2"), (5.85, "P2"), (10.85, "P2")]:
             v.text(xm, 2.35, lab, h=1.8, ha="center", color=GREY, layer="A-SECT-BEY")
-    fb = [(0, 1.0, M.Z_SEM_TOP_S2), (5, 1.2, M.Z_SEM_TOP_S1), (10, 1.2, M.Z_SEM_TOP_S1), (15, 1.0, M.Z_SEM_TOP_S2)]
+    fb = [(x, M.FOOTINGS[M.footing_type(x, 5)][0], M.footing_top(x, 5)) for x in M.XA]
     # longrines are cut on all four Y-axes
     section_common(v, 15.0, walls, beams, [beyond], fb, ext_steps=True, openings_cut=ops)
     for x in (5, 10):
